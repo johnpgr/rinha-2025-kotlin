@@ -1,11 +1,12 @@
 package rinha
 
-import co.touchlab.sqliter.JournalMode
-import co.touchlab.sqliter.SynchronousFlag
+import co.touchlab.sqliter.*
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.util.AttributeKey
+import platform.posix.*
+import rinha.config.System
 import rinha.database.SQLiteDatabase
 import rinha.services.HealthCheckService
 
@@ -29,9 +30,10 @@ fun Application.configureDatabase() {
             journalMode = JournalMode.WAL,
             extendedConfig = config.extendedConfig.copy(
                 foreignKeyConstraints = true,
-                busyTimeout = 5000,
+                busyTimeout = 30000,
                 synchronousFlag = SynchronousFlag.NORMAL,
                 pageSize = 4096,
+                basePath = "/app/database"
             ),
             lifecycleConfig = config.lifecycleConfig.copy(
                 onCreateConnection = { connection ->

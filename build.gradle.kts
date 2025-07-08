@@ -38,9 +38,9 @@ kotlin {
     sourceSets {
         val nativeMain by getting {
             dependencies {
+                implementation("io.ktor:ktor-serialization-kotlinx-json:${ktor_version}")
                 implementation("io.ktor:ktor-server-core:$ktor_version")
                 implementation("io.ktor:ktor-server-cio:$ktor_version")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:${ktor_version}")
                 implementation("io.ktor:ktor-server-content-negotiation:${ktor_version}")
 
                 implementation("io.ktor:ktor-client-core:${ktor_version}")

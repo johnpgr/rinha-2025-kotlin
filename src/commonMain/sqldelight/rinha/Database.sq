@@ -2,7 +2,7 @@ CREATE TABLE Payment (
     correlationId TEXT PRIMARY KEY,
     amount REAL,
     processor TEXT,
-    timestamp INTEGER
+    timestamp TEXT
 );
 
 insertPayment:
@@ -18,6 +18,9 @@ WHERE correlationId = ?;
 
 deletePayment:
 DELETE FROM Payment WHERE correlationId = ?;
+
+deleteAllPayments:
+DELETE FROM Payment;
 
 getAllPayments:
 SELECT * FROM Payment;
