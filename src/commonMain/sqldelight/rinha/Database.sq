@@ -1,0 +1,30 @@
+CREATE TABLE Payment (
+    correlationId TEXT PRIMARY KEY,
+    amount REAL,
+    processor TEXT,
+    timestamp INTEGER
+);
+
+insertPayment:
+INSERT INTO Payment(correlationId, amount, processor, timestamp)
+VALUES(?, ?, ?, ?);
+
+getPayment:
+SELECT * FROM Payment WHERE correlationId = ?;
+
+updatePayment:
+UPDATE Payment SET amount = ?, processor = ?, timestamp = ?
+WHERE correlationId = ?;
+
+deletePayment:
+DELETE FROM Payment WHERE correlationId = ?;
+
+getAllPayments:
+SELECT * FROM Payment;
+
+getPaymentsSummary:
+SELECT processor, COUNT(*) AS totalRequests, SUM(amount) AS totalAmount
+FROM Payment
+WHERE (:from IS NULL OR timestamp >= :from) AND (:to IS NULL OR timestamp <= :to)
+GROUP BY processor;
+

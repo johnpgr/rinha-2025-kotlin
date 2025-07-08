@@ -3,6 +3,7 @@ val ktor_version: String by project
 plugins {
     kotlin("multiplatform") version "2.2.0"
     kotlin("plugin.serialization") version "2.2.0"
+    id("app.cash.sqldelight") version "2.1.0"
 }
 
 repositories {
@@ -17,7 +18,6 @@ kotlin {
         hostOs == "Mac OS X" && arch == "x86_64" -> macosX64("native")
         hostOs == "Mac OS X" && arch == "aarch64" -> macosArm64("native")
         hostOs == "Linux" -> linuxX64("native")
-        // Other supported targets are listed here: https://ktor.io/docs/native-server.html#targets
         else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
     }
 
@@ -25,6 +25,13 @@ kotlin {
         binaries {
             executable {
                 entryPoint = "main"
+                if (hostOs == "Linux") {
+                    linkerOpts(
+                        "--allow-shlib-undefined",
+                        "-L/usr/lib/x86_64-linux-gnu",
+                        "-lsqlite3"
+                    )
+                }
             }
         }
     }
@@ -35,6 +42,13 @@ kotlin {
                 implementation("io.ktor:ktor-server-cio:$ktor_version")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:${ktor_version}")
                 implementation("io.ktor:ktor-server-content-negotiation:${ktor_version}")
+
+                implementation("io.ktor:ktor-client-core:${ktor_version}")
+                implementation("io.ktor:ktor-client-cio:${ktor_version}")
+                implementation("io.ktor:ktor-client-content-negotiation:${ktor_version}")
+
+                implementation("app.cash.sqldelight:native-driver:2.1.0")
+                implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
             }
         }
         val nativeTest by getting {
@@ -42,6 +56,14 @@ kotlin {
                 implementation(kotlin("test"))
                 implementation("io.ktor:ktor-server-test-host:$ktor_version")
             }
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("AppDatabase") {
+            packageName.set("rinha")
         }
     }
 }
