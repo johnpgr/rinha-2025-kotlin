@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS Payment (
+    correlation_id TEXT PRIMARY KEY,
+    amount REAL NOT NULL,
+    processor TEXT NOT NULL,
+    timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+insertPayment:
+INSERT INTO Payment(correlation_id, amount, processor)
+VALUES(?, ?, ?);
+
+deleteAllPayments:
+DELETE FROM Payment;
+
+getAllPayments:
+SELECT * FROM Payment;
+
+getPaymentsSummary:
+SELECT processor, COUNT(*) AS totalRequests, SUM(amount) AS totalAmount
+FROM Payment
+WHERE (:from IS NULL OR timestamp >= :from) AND (:to IS NULL OR timestamp <= :to)
+GROUP BY processor;
+

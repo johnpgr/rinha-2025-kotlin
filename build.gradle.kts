@@ -25,13 +25,13 @@ kotlin {
         binaries {
             executable {
                 entryPoint = "main"
-                if (hostOs == "Linux") {
-                    linkerOpts(
-                        "--allow-shlib-undefined",
-                        "-L/usr/lib/x86_64-linux-gnu",
-                        "-lsqlite3"
-                    )
-                }
+//                if (hostOs == "Linux") {
+//                    linkerOpts(
+//                        "--allow-shlib-undefined",
+//                        "-L/usr/lib/x86_64-linux-gnu",
+//                        "-lsqlite3"
+//                    )
+//                }
             }
         }
     }
@@ -47,8 +47,9 @@ kotlin {
                 implementation("io.ktor:ktor-client-cio:${ktor_version}")
                 implementation("io.ktor:ktor-client-content-negotiation:${ktor_version}")
 
-                implementation("app.cash.sqldelight:native-driver:2.1.0")
                 implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
+                implementation("io.github.smyrgeorge:sqlx4k-postgres:0.61.0")
+                implementation("io.github.smyrgeorge:sqlx4k-sqldelight:0.46.0")
             }
         }
         val nativeTest by getting {
@@ -61,9 +62,10 @@ kotlin {
 }
 
 sqldelight {
-    databases {
-        create("AppDatabase") {
-            packageName.set("rinha")
-        }
+    linkSqlite = false
+    databases.register("AppDatabase") {
+        generateAsync = true
+        packageName = "rinha"
+        dialect("io.github.smyrgeorge:sqlx4k-sqldelight-dialect-postgres:0.46.0")
     }
 }

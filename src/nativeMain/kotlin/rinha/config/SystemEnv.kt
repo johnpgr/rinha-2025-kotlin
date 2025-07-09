@@ -6,7 +6,16 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
 
-object System {
+object SystemEnv {
+    val dbUrl = (getenv("DATABASE_URL")
+        ?: error("Database Environment Variable not found")).toKString()
+
+    val dbUsername = (getenv("DATABASE_USERNAME")
+        ?: error("Database Username Environment Variable not found")).toKString()
+
+    val dbPassword = (getenv("DATABASE_PASSWORD")
+        ?: error("Database Password Environment Variable not found")).toKString()
+
     val paymentApiUrl = (getenv("PAYMENT_PROCESSOR_URL_DEFAULT")
         ?: error("Payment API Environment Variable not found")).toKString()
 

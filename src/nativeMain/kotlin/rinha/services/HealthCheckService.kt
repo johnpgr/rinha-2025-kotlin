@@ -1,7 +1,7 @@
 package rinha.services
 
 import kotlinx.coroutines.*
-import rinha.config.System
+import rinha.config.SystemEnv
 import rinha.models.*
 import rinha.utils.HttpClient
 import kotlin.time.Duration.Companion.seconds
@@ -33,8 +33,8 @@ class HealthCheckService {
     private suspend fun updateHealthStatus() {
         PaymentProcessor.entries.forEach { processor ->
             val url = when (processor) {
-                PaymentProcessor.DEFAULT -> System.paymentApiUrl
-                PaymentProcessor.FALLBACK -> System.paymentApiFallbackUrl
+                PaymentProcessor.DEFAULT -> SystemEnv.paymentApiUrl
+                PaymentProcessor.FALLBACK -> SystemEnv.paymentApiFallbackUrl
             }
             val status = HttpClient.getHealthStatus("$url/payments/service-health")
             cache[processor] = status
