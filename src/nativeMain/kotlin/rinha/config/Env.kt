@@ -6,11 +6,11 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
 
-object SystemEnv {
+object Env {
     val dbUrl = (getenv("DATABASE_URL")
         ?: error("Database Environment Variable not found")).toKString()
 
-    val dbUsername = (getenv("DATABASE_USERNAME")
+    val dbUsername = (getenv("DATABASE_USER")
         ?: error("Database Username Environment Variable not found")).toKString()
 
     val dbPassword = (getenv("DATABASE_PASSWORD")

@@ -1,12 +1,14 @@
 package rinha.services
 
 import kotlinx.coroutines.*
-import rinha.config.SystemEnv
 import rinha.models.*
 import rinha.utils.HttpClient
 import kotlin.time.Duration.Companion.seconds
 
-class HealthCheckService {
+class HealthCheckService(
+    private val defaultClient: HttpClient,
+    private val fallbackClient: HttpClient
+) {
     private var cache = mutableMapOf<PaymentProcessor, HealthStatus>()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var healthCheckJob: Job? = null
@@ -31,14 +33,12 @@ class HealthCheckService {
     }
 
     private suspend fun updateHealthStatus() {
-        PaymentProcessor.entries.forEach { processor ->
-            val url = when (processor) {
-                PaymentProcessor.DEFAULT -> SystemEnv.paymentApiUrl
-                PaymentProcessor.FALLBACK -> SystemEnv.paymentApiFallbackUrl
-            }
-            val status = HttpClient.getHealthStatus("$url/payments/service-health")
-            cache[processor] = status
-        }
+        val results = awaitAll(
+            scope.async { defaultClient.getHealthStatus() },
+            scope.async { fallbackClient.getHealthStatus() }
+        )
+        cache[PaymentProcessor.DEFAULT] = results[0]
+        cache[PaymentProcessor.FALLBACK] = results[1]
     }
 
     fun isDefaultHealthy(): Boolean {

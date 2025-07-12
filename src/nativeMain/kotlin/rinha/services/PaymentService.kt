@@ -2,35 +2,58 @@
 
 package rinha.services
 
-import app.cash.sqldelight.Query
-import app.cash.sqldelight.coroutines.asFlow
+import io.github.smyrgeorge.sqlx4k.Statement
+import io.github.smyrgeorge.sqlx4k.impl.extensions.asDouble
+import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
+import io.github.smyrgeorge.sqlx4k.postgres.PostgreSQL
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import rinha.GetPaymentsSummary
-import rinha.config.SystemEnv
-import rinha.database.PostgresDatabase
 import rinha.models.*
 import rinha.utils.HttpClient
 import kotlin.time.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.ExperimentalUuidApi
 
-class PaymentService(private val db: PostgresDatabase, private val healthCheckService: HealthCheckService) {
+class PaymentService(
+    private val db: PostgreSQL,
+    private val healthCheckService: HealthCheckService,
+    private val defaultHttpClient: HttpClient,
+    private val fallbackHttpClient: HttpClient
+) {
+    companion object {
+        const val deleteAllQuery = "DELETE FROM Payment;"
+
+        val insertPaymentStmt = Statement.create(
+            """
+                INSERT INTO Payment(correlation_id, amount, processor)
+                VALUES(:id, :amount, :processor);
+            """.trimIndent()
+        )
+
+        val getPaymentsSummaryStmt = Statement.create(
+            """
+                SELECT processor, COUNT(*) AS total_requests, SUM(amount) AS total_amount
+                FROM Payment
+                WHERE (:from IS NULL OR timestamp >= :from) AND (:to IS NULL OR timestamp <= :to)
+                GROUP BY processor;
+            """.trimIndent()
+        )
+    }
+
     data class PaymentRecord(
-        val correlationId: String, val amount: Double, val processor: String, val timestamp: String
+        val correlationId: String,
+        val amount: Double,
+        val processor: String,
     )
 
     private val paymentChannel = Channel<PaymentRecord>(Channel.UNLIMITED)
-    private val writeSemaphore = Semaphore(1)
-    private val readSemaphore = Semaphore(10)
-    private val ioDispatcher = Dispatchers.IO.limitedParallelism(20)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     init {
-        CoroutineScope(Dispatchers.Default).launch {
-            processBatchInserts()
+        repeat(4) {
+            scope.launch {
+                processBatchInserts()
+            }
         }
     }
 
@@ -39,10 +62,11 @@ class PaymentService(private val db: PostgresDatabase, private val healthCheckSe
 
         while (true) {
             try {
-                withTimeoutOrNull(10.milliseconds) {
-                    repeat(50) {
-                        val record = paymentChannel.tryReceive().getOrThrow()
-                        batch.add(record)
+                batch.add(paymentChannel.receive())
+
+                withTimeoutOrNull(5.milliseconds) {
+                    while (batch.size < 100) {
+                        batch.add(paymentChannel.receive())
                     }
                 }
 
@@ -52,37 +76,70 @@ class PaymentService(private val db: PostgresDatabase, private val healthCheckSe
                 }
             } catch (e: Exception) {
                 batch.clear()
+                delay(1.milliseconds)
             }
         }
     }
 
     private suspend fun insertBatch(batch: List<PaymentRecord>) {
-        writeSemaphore.withPermit {
-            withContext(ioDispatcher) {
-                batch.forEach { record ->
-                    db.query.transaction(false) {
-                        db.query.insertPayment(record.correlationId, record.amount, record.processor)
-                    }
-                }
+        db.transaction {
+            batch.forEach { payment ->
+                execute(
+                    insertPaymentStmt.bind("id", payment.correlationId).bind("amount", payment.amount)
+                        .bind("processor", payment.processor),
+                )
             }
         }
     }
 
-    suspend fun getPaymentsSummary(from: String?, to: String?): Flow<Query<GetPaymentsSummary>> {
-        readSemaphore.withPermit {
-            return db.query.getPaymentsSummary(from, to).asFlow()
+    suspend fun getPaymentsSummary(from: String?, to: String?): PaymentsSummary {
+        var defaultSummary: ProcessorSummary? = null
+        var fallbackSummary: ProcessorSummary? = null
+
+        db.fetchAll(
+            getPaymentsSummaryStmt.bind("from", from).bind("to", to)
+        ).getOrThrow().map { row ->
+            val processor = row.get("processor").asString()
+            val totalRequests = row.get("total_requests").asLong()
+            val totalAmount = row.get("total_amount").asDouble()
+            when (processor) {
+                PaymentProcessor.DEFAULT.name -> {
+                    defaultSummary = ProcessorSummary(totalRequests.toInt(), totalAmount)
+                }
+
+                PaymentProcessor.FALLBACK.name -> {
+                    fallbackSummary = ProcessorSummary(totalRequests.toInt(), totalAmount)
+                }
+
+                else -> throw IllegalArgumentException("Unknown processor: $processor")
+            }
         }
+
+        return PaymentsSummary(
+            default = defaultSummary ?: ProcessorSummary(0, 0.0), fallback = fallbackSummary ?: ProcessorSummary(0, 0.0)
+        )
     }
 
     suspend fun processPayment(payment: Payment) {
-        val processor =
-            if (healthCheckService.isDefaultHealthy()) PaymentProcessor.DEFAULT else PaymentProcessor.FALLBACK
-        val url =
-            if (processor == PaymentProcessor.DEFAULT) SystemEnv.paymentApiUrl else SystemEnv.paymentApiFallbackUrl
+        val client = if (healthCheckService.isDefaultHealthy()) defaultHttpClient else fallbackHttpClient
 
-        HttpClient.postPayment(url, payment)
-        db.query.insertPayment(
-            payment.correlationId.toString(), payment.amount, processor.name,
-        )
+        coroutineScope {
+            awaitAll(
+                async { client.postPayment(payment) },
+                async {
+                    paymentChannel.send(
+                        PaymentRecord(
+                            correlationId = payment.correlationId.toString(),
+                            amount = payment.amount,
+                            processor = client.processor.name,
+                        )
+                    )
+                }
+            )
+        }
+    }
+
+    suspend fun purgePayments() {
+        db.execute(deleteAllQuery)
     }
 }

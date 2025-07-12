@@ -1,7 +1,12 @@
-CREATE UNLOGGED TABLE payments (
-    correlationId UUID PRIMARY KEY,
-    amount DECIMAL NOT NULL,
-    requested_at TIMESTAMP NOT NULL
+CREATE TABLE IF NOT EXISTS Payment
+(
+    id             SERIAL PRIMARY KEY,
+    correlation_id VARCHAR(36),
+    amount         DECIMAL(15, 2) NOT NULL,
+    processor      VARCHAR(20)    NOT NULL,
+    timestamp      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX payments_requested_at ON payments (requested_at);
+CREATE INDEX CONCURRENTLY idx_payment_window_grp
+    ON Payment (timestamp, processor)
+    INCLUDE (amount);

@@ -2,34 +2,35 @@
 
 package rinha
 
-import app.cash.sqldelight.coroutines.mapToList
+import io.github.smyrgeorge.sqlx4k.postgres.PostgreSQL
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
-import rinha.database.PostgresDatabase
 import rinha.models.Payment
-import rinha.models.*
 import rinha.services.*
+import rinha.utils.HttpClient
 import kotlin.time.*
 
-object PaymentsApi {
+object PaymentsApp {
     private lateinit var paymentService: PaymentService
-    private lateinit var db: PostgresDatabase
     private lateinit var healthCheckService: HealthCheckService
 
     fun init(app: Application) {
-        db = app.attributes[AttributeKey<PostgresDatabase>("db")]
+        val db = app.attributes[AttributeKey<PostgreSQL>("db")]
+        val defaultClient = app.attributes[AttributeKey<HttpClient>("defaultClient")]
+        val fallbackClient = app.attributes[AttributeKey<HttpClient>("fallbackClient")]
+
         healthCheckService = app.attributes[AttributeKey<HealthCheckService>("healthCheckService")]
-        paymentService = PaymentService(db, healthCheckService)
+        paymentService = PaymentService(db, healthCheckService, defaultClient, fallbackClient)
     }
 
     fun configureRoutes(app: Application) {
         app.routing {
             post("/purge-payments") {
-                db.query.deleteAllPayments()
+                paymentService.purgePayments()
                 call.respond(HttpStatusCode.OK, "All payments have been purged")
             }
 
@@ -52,17 +53,10 @@ object PaymentsApi {
                     }
                 }
 
-                paymentService.getPaymentsSummary(from, to).mapToList(app.coroutineContext).collect { summaries ->
-                    val defaultSummary = summaries.find { it.processor == PaymentProcessor.DEFAULT.name }?.let {
-                        ProcessorSummary(it.totalRequests.toInt(), it.totalAmount ?: 0.0)
-                    } ?: ProcessorSummary(0, 0.0)
-                    val fallbackSummary = summaries.find { it.processor == PaymentProcessor.FALLBACK.name }?.let {
-                        ProcessorSummary(it.totalRequests.toInt(), it.totalAmount ?: 0.0)
-                    } ?: ProcessorSummary(0, 0.0)
-                    val paymentsSummary = PaymentsSummary(defaultSummary, fallbackSummary)
-                    call.respond(paymentsSummary)
-                }
+                val paymentsSummary = paymentService.getPaymentsSummary(from, to)
+                call.respond(paymentsSummary)
             }
         }
     }
 }
+
