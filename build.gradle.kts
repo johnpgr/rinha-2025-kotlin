@@ -48,8 +48,8 @@ kotlin {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.ktor.client.content.negotiation)
 
-                // Sqlx
-                implementation(libs.sqlx4k.postgres)
+                // Redis connection
+                implementation(libs.kedis)
             }
         }
     }

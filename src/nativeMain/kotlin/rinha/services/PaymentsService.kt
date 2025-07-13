@@ -2,10 +2,7 @@
 
 package rinha.services
 
-import io.github.smyrgeorge.sqlx4k.Statement
-import io.github.smyrgeorge.sqlx4k.impl.extensions.asDouble
-import io.github.smyrgeorge.sqlx4k.impl.extensions.asLong
-import io.github.smyrgeorge.sqlx4k.postgres.PostgreSQL
+import io.github.domgew.kedis.KedisClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import rinha.models.*
@@ -14,8 +11,8 @@ import kotlin.time.*
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.ExperimentalUuidApi
 
-class PaymentService(
-    private val db: PostgreSQL,
+class PaymentsService(
+    private val redis: KedisClient,
     private val healthCheckService: HealthCheckService,
     private val defaultHttpClient: HttpClient,
     private val fallbackHttpClient: HttpClient
