@@ -12,7 +12,7 @@ services:
       resources:
         limits:
           cpus: "0.625"
-          memory: "150MB"
+          memory: "125MB"
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
@@ -30,7 +30,7 @@ services:
       resources:
         limits:
           cpus: "0.625"
-          memory: "150MB"
+          memory: "125MB"
     environment:
       - PAYMENT_PROCESSOR_URL_DEFAULT=http://payment-processor-default:8080
       - PAYMENT_PROCESSOR_URL_FALLBACK=http://payment-processor-fallback:8080
@@ -52,7 +52,7 @@ services:
       resources:
         limits:
           cpus: "0.25"
-          memory: "50MB"
+          memory: "100MB"
 
 volumes:
   shared-db:

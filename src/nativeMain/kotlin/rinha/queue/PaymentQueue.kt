@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import rinha.models.Payment
 
 object PaymentQueue {
-    private val channel = Channel<Payment>(capacity = Channel.UNLIMITED)
+    private val channel: Channel<Payment> = Channel(capacity = Channel.UNLIMITED)
 
     suspend fun enqueue(payment: Payment) {
         channel.send(payment)
