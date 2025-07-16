@@ -10,6 +10,6 @@ data class PaymentsSummary(
 
 @Serializable
 data class ProcessorSummary(
-    val totalRequests: Int,
+    val totalRequests: Long,
     val totalAmount: Double
 )

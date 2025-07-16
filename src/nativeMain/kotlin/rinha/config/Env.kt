@@ -6,10 +6,10 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.toKString
 import platform.posix.getenv
 
-object System {
-    val paymentApiUrl = (getenv("PAYMENT_PROCESSOR_URL_DEFAULT")
+object Env {
+    val defaultProcessorURL = (getenv("PAYMENT_PROCESSOR_URL_DEFAULT")
         ?: error("Payment API Environment Variable not found")).toKString()
 
-    val paymentApiFallbackUrl = (getenv("PAYMENT_PROCESSOR_URL_FALLBACK")
+    val fallbackProcessorURL = (getenv("PAYMENT_PROCESSOR_URL_FALLBACK")
         ?: error("Payment API Fallback Environment Variable not found")).toKString()
 }

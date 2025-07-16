@@ -22,7 +22,7 @@ kotlin {
     nativeTarget.apply {
         binaries {
             executable {
-                entryPoint = "rinha.main"
+                entryPoint = "api.main"
                 if (hostOs == "Linux") {
                     linkerOpts(
                         "--allow-shlib-undefined",
@@ -46,7 +46,6 @@ kotlin {
                 implementation(libs.ktor.client.content.negotiation)
 
                 implementation(libs.sqldelight.native.driver)
-                implementation(libs.sqldelight.coroutines.extensions)
             }
         }
         val nativeTest by getting {

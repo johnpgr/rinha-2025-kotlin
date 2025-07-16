@@ -8,7 +8,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.*
 import rinha.models.*
 import kotlin.time.*
 
@@ -19,20 +18,21 @@ object HttpClient {
         }
     }
 
-    suspend fun postPayment(url: String, payment: Payment) {
-        client.post("$url/payments") {
+    suspend fun postPayment(url: String, payment: Payment): Boolean {
+        val response = client.post("$url/payments") {
             contentType(ContentType.Application.Json)
             setBody(payment)
         }
-    }
 
-    suspend fun getHealthStatus(url: String): HealthStatus {
-        val response = client.get(url)
-        val json = Json.parseToJsonElement(response.bodyAsText())
-        return HealthStatus(
-            failing = json.jsonObject["failing"]?.jsonPrimitive?.boolean ?: true,
-            minResponseTime = json.jsonObject["minResponseTime"]?.jsonPrimitive?.int ?: 9999,
-            lastChecked = Clock.System.now().toEpochMilliseconds()
-        )
+        if (response.status == HttpStatusCode.InternalServerError) {
+            return false
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            println("Unexpected response status: ${response.status}, body: ${response.bodyAsText()}")
+            throw IllegalStateException("Unexpected response status: ${response.status}")
+        }
+
+        return true
     }
 }

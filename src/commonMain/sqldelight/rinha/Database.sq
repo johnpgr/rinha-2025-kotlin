@@ -1,8 +1,8 @@
 CREATE TABLE Payment (
     correlationId TEXT PRIMARY KEY,
-    amount REAL,
-    processor TEXT,
-    timestamp TEXT
+    amount REAL NOT NULL,
+    processor TEXT NOT NULL,
+    timestamp TEXT NOT NULL
 );
 
 insertPayment:

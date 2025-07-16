@@ -6,24 +6,30 @@ import io.ktor.server.application.*
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
-import platform.posix.*
-import rinha.config.System
 import rinha.database.SQLiteDatabase
-import rinha.services.HealthCheckService
+import rinha.routes.paymentRoutes
+import rinha.worker.PaymentWorker
 
 fun Application.module() {
     install(ContentNegotiation) { json() }
-    configureHealthCheck()
     configureDatabase()
-    PaymentsApi.configureRoutes(this)
+    configureWorker()
+    configureRouting()
 }
 
-fun Application.configureHealthCheck() {
-    val healthCheckService = HealthCheckService()
-    monitor.subscribe(ApplicationStarted) { healthCheckService.start() }
-    monitor.subscribe(ApplicationStopped) { healthCheckService.stop() }
-    attributes.put(AttributeKey<HealthCheckService>("healthCheckService"), healthCheckService)
+fun Application.configureRouting() {
+    routing {
+        paymentRoutes()
+    }
+}
+
+fun Application.configureWorker() {
+    val paymentWorker = PaymentWorker(this)
+    monitor.subscribe(ApplicationStarted) { paymentWorker.start() }
+    monitor.subscribe(ApplicationStopped) { paymentWorker.stop() }
+    attributes.put(AttributeKey<PaymentWorker>("paymentWorker"), paymentWorker)
 }
 
 fun Application.configureDatabase() {
