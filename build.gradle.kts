@@ -1,9 +1,7 @@
-val ktor_version: String by project
-
 plugins {
-    kotlin("multiplatform") version "2.2.0"
-    kotlin("plugin.serialization") version "2.2.0"
-    id("app.cash.sqldelight") version "2.1.0"
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.sqldelight)
 }
 
 repositories {
@@ -24,7 +22,7 @@ kotlin {
     nativeTarget.apply {
         binaries {
             executable {
-                entryPoint = "main"
+                entryPoint = "rinha.main"
                 if (hostOs == "Linux") {
                     linkerOpts(
                         "--allow-shlib-undefined",
@@ -38,23 +36,23 @@ kotlin {
     sourceSets {
         val nativeMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-serialization-kotlinx-json:${ktor_version}")
-                implementation("io.ktor:ktor-server-core:$ktor_version")
-                implementation("io.ktor:ktor-server-cio:$ktor_version")
-                implementation("io.ktor:ktor-server-content-negotiation:${ktor_version}")
+                implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.ktor.server.core)
+                implementation(libs.ktor.server.cio)
+                implementation(libs.ktor.server.content.negotiation)
 
-                implementation("io.ktor:ktor-client-core:${ktor_version}")
-                implementation("io.ktor:ktor-client-cio:${ktor_version}")
-                implementation("io.ktor:ktor-client-content-negotiation:${ktor_version}")
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.cio)
+                implementation(libs.ktor.client.content.negotiation)
 
-                implementation("app.cash.sqldelight:native-driver:2.1.0")
-                implementation("app.cash.sqldelight:coroutines-extensions:2.1.0")
+                implementation(libs.sqldelight.native.driver)
+                implementation(libs.sqldelight.coroutines.extensions)
             }
         }
         val nativeTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("io.ktor:ktor-server-test-host:$ktor_version")
+                implementation(libs.ktor.server.test.host)
             }
         }
     }
