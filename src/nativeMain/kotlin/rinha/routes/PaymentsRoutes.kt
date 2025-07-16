@@ -8,13 +8,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
 import rinha.database.SQLiteDatabase
-import rinha.models.Payment
-import rinha.models.PaymentProcessor
-import rinha.models.PaymentsSummary
-import rinha.models.ProcessorSummary
 import rinha.queue.PaymentQueue
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import rinha.models.*
+import kotlin.time.*
 
 fun Route.paymentRoutes() {
     val db = application.attributes[AttributeKey<SQLiteDatabase>("db")]
