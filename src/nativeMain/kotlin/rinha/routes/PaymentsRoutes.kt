@@ -28,10 +28,10 @@ fun Route.paymentRoutes() {
 
     get("/payments-summary") {
         // Parse as Instant just to validate these are valid timestamps
-        val from = call.queryParameters["from"]?.let { Instant.parse(it) }
-        val to = call.queryParameters["to"]?.let { Instant.parse(it) }
+        val from = call.queryParameters["from"]?.let { Instant.parseOrNull(it) }
+        val to = call.queryParameters["to"]?.let { Instant.parseOrNull(it) }
 
-        val summaries = db.query.getPaymentsSummary(from.toString(), to.toString()).executeAsList()
+        val summaries = db.query.getPaymentsSummary(from?.toString(), to?.toString()).executeAsList()
 
         val defaultSummary = summaries.find { it.processor == PaymentProcessor.DEFAULT.name }
             ?.let { ProcessorSummary(it.totalRequests, it.totalAmount ?: 0.0) }
