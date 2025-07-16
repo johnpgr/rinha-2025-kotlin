@@ -22,7 +22,7 @@ kotlin {
     nativeTarget.apply {
         binaries {
             executable {
-                entryPoint = "api.main"
+                entryPoint = "rinha.main"
                 if (hostOs == "Linux") {
                     linkerOpts(
                         "--allow-shlib-undefined",
