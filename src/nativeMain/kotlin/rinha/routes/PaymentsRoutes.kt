@@ -33,15 +33,20 @@ fun Route.paymentRoutes() {
 
         val summaries = db.query.getPaymentsSummary(from?.toString(), to?.toString()).executeAsList()
 
-        val defaultSummary = summaries.find { it.processor == PaymentProcessor.DEFAULT.name }
-            ?.let { ProcessorSummary(it.totalRequests, it.totalAmount ?: 0.0) }
+        var defaultSummary = ProcessorSummary(0, 0.0)
+        var fallbackSummary = ProcessorSummary(0, 0.0)
 
-        val fallbackSummary = summaries.find { it.processor == PaymentProcessor.FALLBACK.name }
-            ?.let { ProcessorSummary(it.totalRequests, it.totalAmount ?: 0.0) }
+        summaries.forEach { (processor, totalRequests, totalAmount) ->
+            when (processor) {
+                PaymentProcessor.DEFAULT.name -> defaultSummary = ProcessorSummary(totalRequests, totalAmount ?: 0.0)
+                PaymentProcessor.FALLBACK.name -> fallbackSummary = ProcessorSummary(totalRequests, totalAmount ?: 0.0)
+                else -> error("Unknown payment processor: $processor")
+            }
+        }
 
         val paymentSummaries = PaymentsSummary(
-            default = defaultSummary ?: ProcessorSummary(0, 0.0),
-            fallback = fallbackSummary ?: ProcessorSummary(0, 0.0),
+            default = defaultSummary,
+            fallback = fallbackSummary,
         )
 
         call.respond(HttpStatusCode.OK, paymentSummaries)
