@@ -10,6 +10,6 @@ import kotlin.uuid.*
 data class Payment(
     val correlationId: Uuid,
     val amount: Double,
-    @EncodeDefault @Contextual
-    val requestedAt: Instant = Clock.System.now()
+    @EncodeDefault
+    val requestedAt: String = Clock.System.now().toString()
 )

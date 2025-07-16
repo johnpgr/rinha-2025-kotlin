@@ -28,7 +28,7 @@ class PaymentWorker(app: Application) {
                     payment.correlationId.toString(),
                     payment.amount,
                     processor.name,
-                    payment.requestedAt.toString(),
+                    payment.requestedAt,
                 )
             }
         }
